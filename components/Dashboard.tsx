@@ -8,6 +8,7 @@ import FilterBar from "./FilterBar";
 import ImportReview from "./ImportReview";
 import LoginForm from "./LoginForm";
 import MonthChart from "./MonthChart";
+import NewPasswordForm from "./NewPasswordForm";
 import TransactionsTable from "./TransactionsTable";
 import UploadPanel from "./UploadPanel";
 import { buildCardColors } from "@/lib/colors";
@@ -37,6 +38,8 @@ export default function Dashboard() {
     supabase ? undefined : null
   );
   const [demo, setDemo] = useState(false);
+  // Pessoa chegou pelo link de "esqueci minha senha"
+  const [recovery, setRecovery] = useState(false);
   const [remote, setRemote] = useState<Transaction[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
@@ -50,10 +53,12 @@ export default function Dashboard() {
   // Acompanha o login
   useEffect(() => {
     if (!supabase) return;
+    if (window.location.hash.includes("type=recovery")) setRecovery(true);
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_event, next) =>
-      setSession(next)
-    );
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
+      setSession(next);
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -158,6 +163,10 @@ export default function Dashboard() {
     setFilters(emptyFilters);
   }
 
+  if (!localMode && recovery && session) {
+    return <NewPasswordForm onDone={() => setRecovery(false)} />;
+  }
+
   // Telas anteriores ao painel
   if (!demo) {
     if (!localMode && session === undefined) return null;
@@ -207,6 +216,18 @@ export default function Dashboard() {
     if (remote.length === 0) {
       return (
         <div className="px-5 sm:px-8">
+          {!localMode && (
+            <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-3 pt-6 text-muted">
+              <span>Conectado como {session?.user.email}</span>
+              <button
+                type="button"
+                onClick={signOut}
+                className="font-semibold text-brand underline"
+              >
+                Sair
+              </button>
+            </div>
+          )}
           <UploadPanel
             onFile={handleFile}
             onSample={localMode ? () => setDemo(true) : undefined}
@@ -234,6 +255,9 @@ export default function Dashboard() {
                 ? ", salvos só neste navegador"
                 : ""}
           </p>
+          {!demo && !localMode && (
+            <p className="mt-0.5 text-sm text-muted">Conta: {session?.user.email}</p>
+          )}
         </div>
         <div className="flex flex-wrap gap-3">
           {demo ? (

@@ -56,7 +56,7 @@ export default function TransactionsTable({ transactions, cardColors }: Props) {
   return (
     <div>
       <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
-        <table className="w-full min-w-[40rem] border-collapse text-left">
+        <table className="w-full min-w-160 border-collapse text-left">
           <thead>
             <tr className="border-b border-line">
               {COLUMNS.map((c) => (
