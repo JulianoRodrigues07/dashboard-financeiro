@@ -17,9 +17,9 @@ export default function UploadPanel({ onFile, onSample, error, loading }: Props)
     <section className="mx-auto max-w-2xl py-16">
       <h1 className="text-4xl font-bold tracking-tight">Gastos nos cartões</h1>
       <p className="mt-3 text-lg text-muted">
-        Envie a primeira planilha. Depois de conferida e salva, os gastos de todos
-        os meses ficam guardados na sua conta e aparecem aqui sempre que você
-        entrar, sem precisar abrir a planilha de novo.
+        Envie a primeira planilha ou fatura. Depois de conferida e salva, os
+        gastos de todos os meses ficam guardados na sua conta e aparecem aqui
+        sempre que você entrar, sem precisar abrir o arquivo de novo.
       </p>
 
       <div
@@ -39,21 +39,23 @@ export default function UploadPanel({ onFile, onSample, error, loading }: Props)
         }`}
       >
         <p className="text-lg font-semibold">Arraste a planilha para cá</p>
-        <p className="mt-1 text-muted">Aceita arquivos .xlsx e .csv</p>
+        <p className="mt-1 text-muted">
+          Aceita planilhas .xlsx e .csv e faturas em PDF do Porto Bank
+        </p>
         <button
           type="button"
           disabled={loading}
           onClick={() => inputRef.current?.click()}
           className="mt-5 inline-flex min-h-12 items-center rounded-xl bg-brand px-6 font-semibold text-white hover:bg-[#093f3b] disabled:opacity-60"
         >
-          {loading ? "Lendo planilha..." : "Escolher arquivo"}
+          {loading ? "Lendo arquivo..." : "Escolher arquivo"}
         </button>
         <input
           ref={inputRef}
           type="file"
-          accept=".xlsx,.csv"
+          accept=".xlsx,.csv,.pdf"
           className="sr-only"
-          aria-label="Escolher planilha de gastos"
+          aria-label="Escolher planilha ou fatura de gastos"
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) onFile(file);

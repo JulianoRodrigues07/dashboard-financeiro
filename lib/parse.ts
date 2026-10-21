@@ -237,6 +237,7 @@ function rowsToTransactions(rows: Cell[][], suggestedCard: string): ParseResult 
     transactions.push({
       id: `t${line}`,
       date,
+      invoice: date.slice(0, 7),
       amount,
       place: cleanPlace(cell("place")) || "Sem descrição",
       installment: parseInstallment(cell("installment")),
@@ -254,6 +255,7 @@ function rowsToTransactions(rows: Cell[][], suggestedCard: string): ParseResult 
     skipped,
     cardMissing: columns.card === undefined,
     suggestedCard,
+    notes: [],
   };
 }
 
@@ -286,12 +288,18 @@ export async function parseFile(file: File): Promise<ParseResult> {
     return rowsToTransactions(await readCsv(file), suggested);
   }
 
+  if (name.endsWith(".pdf")) {
+    const { readPdfLines } = await import("./pdf/extract");
+    const { parsePortoLines } = await import("./pdf/porto");
+    return parsePortoLines(await readPdfLines(file));
+  }
+
   if (name.endsWith(".xlsx")) {
     const rows = (await readSheet(file)) as Cell[][];
     return rowsToTransactions(rows, suggested);
   }
 
-  throw new Error("Formato não suportado. Envie um arquivo .xlsx ou .csv.");
+  throw new Error("Formato não suportado. Envie um arquivo .xlsx, .csv ou a fatura em PDF.");
 }
 
 export { FIELD_LABELS };

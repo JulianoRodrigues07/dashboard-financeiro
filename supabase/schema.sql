@@ -4,6 +4,8 @@ create table if not exists public.transactions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   date date not null,
+  -- Mês da fatura (AAAA-MM). É a chave usada para substituir dados ao importar.
+  invoice text not null,
   amount numeric(12, 2) not null,
   place text not null,
   installment text not null default 'À vista',
@@ -32,7 +34,7 @@ create policy "editar proprias compras" on public.transactions
 create policy "apagar proprias compras" on public.transactions
   for delete to authenticated using (user_id = (select auth.uid()));
 
--- Importação: apaga as compras dos cartões e meses que aparecem no arquivo
+-- Importação: apaga as compras dos cartões e faturas que aparecem no arquivo
 -- e grava as novas, tudo numa só transação. Enviar a mesma fatura duas vezes
 -- não duplica nada.
 create or replace function public.replace_transactions(rows jsonb)
@@ -48,16 +50,17 @@ begin
   using (
     select distinct
       r ->> 'card' as card,
-      to_char((r ->> 'date')::date, 'YYYY-MM') as month
+      coalesce(r ->> 'invoice', to_char((r ->> 'date')::date, 'YYYY-MM')) as invoice
     from jsonb_array_elements(rows) as r
   ) p
   where t.user_id = auth.uid()
     and t.card = p.card
-    and to_char(t.date, 'YYYY-MM') = p.month;
+    and t.invoice = p.invoice;
 
-  insert into public.transactions (date, amount, place, installment, card, category)
+  insert into public.transactions (date, invoice, amount, place, installment, card, category)
   select
     (r ->> 'date')::date,
+    coalesce(r ->> 'invoice', to_char((r ->> 'date')::date, 'YYYY-MM')),
     (r ->> 'amount')::numeric,
     r ->> 'place',
     r ->> 'installment',

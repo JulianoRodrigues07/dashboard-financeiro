@@ -4,7 +4,6 @@ import {
   PRESETS,
   activePreset,
   isFiltering,
-  monthRange,
   presetRange,
   type Filters,
 } from "@/lib/filters";
@@ -16,7 +15,7 @@ type Props = {
   onClear: () => void;
   cards: string[];
   categories: string[];
-  /** Meses com compras, no formato AAAA-MM, do mais recente ao mais antigo */
+  /** Meses de fatura com compras (AAAA-MM), do mais antigo ao mais recente */
   months: string[];
   cardColors: Record<string, string>;
 };
@@ -33,6 +32,11 @@ const chipOn = "border-brand bg-brand text-white";
 const inputClass =
   "min-h-11 rounded-xl border border-line bg-surface px-3 text-ink";
 
+/** Garante que o valor escolhido apareça na lista, mesmo sem compras nesse mês. */
+function withCurrent(months: string[], value: string): string[] {
+  return value && !months.includes(value) ? [...months, value].sort() : months;
+}
+
 export default function FilterBar({
   filters,
   onChange,
@@ -43,17 +47,14 @@ export default function FilterBar({
   cardColors,
 }: Props) {
   const current = activePreset(filters);
-  const matchedMonth = months.find((m) => {
-    const r = monthRange(m);
-    return r.from === filters.from && r.to === filters.to;
-  });
-  const monthValue = matchedMonth ?? (filters.from || filters.to ? "custom" : "");
+  const fromOptions = withCurrent(months, filters.from);
+  const toOptions = withCurrent(months, filters.to);
 
   return (
     <section aria-label="Filtros" className="space-y-5 rounded-2xl border border-line bg-surface p-5 sm:p-6">
       <div className="flex flex-wrap items-end gap-x-6 gap-y-4">
         <div>
-          <p className="mb-2 text-sm font-semibold text-muted">Período</p>
+          <p className="mb-2 text-sm font-semibold text-muted">Período (mês da fatura)</p>
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((p) => (
               <button
@@ -70,49 +71,34 @@ export default function FilterBar({
         </div>
 
         <label className="text-sm font-semibold text-muted">
-          <span className="mb-2 block">Mês</span>
+          <span className="mb-2 block">De</span>
           <select
-            value={monthValue}
-            onChange={(e) => {
-              const v = e.target.value;
-              onChange({
-                ...filters,
-                ...(v === "" ? { from: "", to: "" } : monthRange(v)),
-              });
-            }}
+            value={filters.from}
+            onChange={(e) => onChange({ ...filters, from: e.target.value })}
             className={inputClass}
           >
-            <option value="">Todos os meses</option>
-            {monthValue === "custom" && (
-              <option value="custom" disabled>
-                Período personalizado
-              </option>
-            )}
-            {months.map((m) => (
+            <option value="">Primeiro mês</option>
+            {fromOptions.map((m) => (
               <option key={m} value={m}>
                 {formatMonth(m)}
               </option>
             ))}
           </select>
         </label>
-
-        <label className="text-sm font-semibold text-muted">
-          <span className="mb-2 block">De</span>
-          <input
-            type="date"
-            value={filters.from}
-            onChange={(e) => onChange({ ...filters, from: e.target.value })}
-            className={inputClass}
-          />
-        </label>
         <label className="text-sm font-semibold text-muted">
           <span className="mb-2 block">Até</span>
-          <input
-            type="date"
+          <select
             value={filters.to}
             onChange={(e) => onChange({ ...filters, to: e.target.value })}
             className={inputClass}
-          />
+          >
+            <option value="">Último mês</option>
+            {toOptions.map((m) => (
+              <option key={m} value={m}>
+                {formatMonth(m)}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="min-w-56 flex-1 text-sm font-semibold text-muted">

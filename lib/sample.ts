@@ -34,6 +34,7 @@ export const sampleTransactions: Transaction[] = SEEDS.map(
   ([date, amount, place, installment, card, category], i) => ({
     id: `exemplo${i}`,
     date,
+    invoice: date.slice(0, 7),
     amount,
     place,
     installment,

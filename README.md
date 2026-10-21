@@ -21,8 +21,11 @@ Abra http://localhost:3000. Sem as variáveis o site abre, mas só mostra os dad
 ## Como os dados são guardados
 
 - Cada compra fica na tabela transactions, ligada ao usuário. As regras de acesso (RLS) garantem que cada conta só enxerga as próprias compras.
-- Ao importar uma planilha, o sistema mostra um resumo por mês e cartão para conferir. Ao salvar, as compras daquele cartão naquele mês são substituídas pelas do arquivo. Enviar a mesma fatura duas vezes não duplica.
-- Colunas da planilha: data, valor, onde foi a compra, parcela, cartão, categoria. Exemplo em public/modelo-gastos.csv.
+- Cada compra tem a data da compra e o mês da fatura em que foi cobrada (campo invoice). O painel agrupa por mês da fatura.
+- Ao importar, o sistema mostra um resumo por fatura e cartão para conferir. Ao salvar, as compras daquele cartão naquela fatura são substituídas pelas do arquivo. Enviar a mesma fatura duas vezes não duplica.
+- Planilhas e extratos (.xlsx, .csv): colunas data, valor, onde foi a compra, parcela, cartão, categoria. O mês da fatura é o mês da compra. Exemplo em public/modelo-gastos.csv.
+- Fatura em PDF do Porto Bank: o mês da fatura é o do vencimento, cada cartão da fatura vira um cartão ("Porto final 126") e o pagamento da fatura anterior é ignorado. A categoria é sugerida pelo nome da loja (regras em lib/pdf/categorize.ts). O leitor está em lib/pdf/porto.ts; para outro banco, crie um arquivo parecido.
+- Se você já tinha rodado o schema.sql antes, rode também supabase/migracao-fatura.sql uma vez.
 
 ## Onde mexer
 

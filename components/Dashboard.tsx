@@ -14,7 +14,7 @@ import UploadPanel from "./UploadPanel";
 import { buildCardColors } from "@/lib/colors";
 import { clearLocalTransactions, fetchTransactions, saveTransactions } from "@/lib/db";
 import { applyFilters, emptyFilters, type Filters } from "@/lib/filters";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatMonth, formatMoney } from "@/lib/format";
 import { parseFile } from "@/lib/parse";
 import { sampleTransactions } from "@/lib/sample";
 import { localMode, supabase } from "@/lib/supabase";
@@ -96,7 +96,7 @@ export default function Dashboard() {
     [all]
   );
   const months = useMemo(
-    () => [...new Set(all.map((t) => t.date.slice(0, 7)))].sort().reverse(),
+    () => [...new Set(all.map((t) => t.invoice))].sort(),
     [all]
   );
   const cardColors = useMemo(() => buildCardColors(cards), [cards]);
@@ -239,7 +239,6 @@ export default function Dashboard() {
     }
   }
 
-  const dates = all.map((t) => t.date).sort();
 
   return (
     <main className="mx-auto max-w-6xl space-y-10 px-5 py-8 sm:px-8">
@@ -247,8 +246,8 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Gastos nos cartões</h1>
           <p className="mt-1 text-muted">
-            {all.length} compras de {formatDate(dates[0])} a{" "}
-            {formatDate(dates[dates.length - 1])}
+            {all.length} compras, faturas de {formatMonth(months[0])} a{" "}
+            {formatMonth(months[months.length - 1])}
             {demo
               ? ", dados de exemplo"
               : localMode
@@ -276,14 +275,14 @@ export default function Dashboard() {
                 onClick={() => replaceInput.current?.click()}
                 className="min-h-11 rounded-xl bg-brand px-5 font-semibold text-white hover:bg-[#093f3b] disabled:opacity-60"
               >
-                {reading ? "Lendo planilha..." : "Importar planilha"}
+                {reading ? "Lendo arquivo..." : "Importar planilha ou fatura"}
               </button>
               <input
                 ref={replaceInput}
                 type="file"
-                accept=".xlsx,.csv"
+                accept=".xlsx,.csv,.pdf"
                 className="sr-only"
-                aria-label="Escolher planilha para importar"
+                aria-label="Escolher planilha ou fatura para importar"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleFile(file);

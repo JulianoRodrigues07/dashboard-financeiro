@@ -9,16 +9,21 @@ const LOCAL_KEY = "dashboard-financeiro:local:v2";
 function readLocal(): Transaction[] {
   try {
     const raw = localStorage.getItem(LOCAL_KEY);
-    return raw ? (JSON.parse(raw) as Transaction[]) : [];
+    if (!raw) return [];
+    // Dados guardados antes da coluna "invoice" usam o mês da compra
+    return (JSON.parse(raw) as Transaction[]).map((t) => ({
+      ...t,
+      invoice: t.invoice ?? t.date.slice(0, 7),
+    }));
   } catch {
     return [];
   }
 }
 
-const groupKey = (t: Transaction) => `${t.card}|${t.date.slice(0, 7)}`;
+const groupKey = (t: Transaction) => `${t.card}|${t.invoice}`;
 
 function saveLocal(list: Transaction[]): void {
-  // Mesma regra do banco: troca as compras dos cartões e meses do arquivo
+  // Mesma regra do banco: troca as compras dos cartões e faturas do arquivo
   const replaced = new Set(list.map(groupKey));
   const kept = readLocal().filter((t) => !replaced.has(groupKey(t)));
   const stamp = Date.now();
@@ -45,7 +50,7 @@ export async function fetchTransactions(): Promise<Transaction[]> {
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("transactions")
-      .select("id, date, amount, place, installment, card, category")
+      .select("id, date, invoice, amount, place, installment, card, category")
       .order("date", { ascending: false })
       .order("id")
       .range(from, from + PAGE_SIZE - 1);
@@ -56,6 +61,7 @@ export async function fetchTransactions(): Promise<Transaction[]> {
       all.push({
         id: row.id as string,
         date: row.date as string,
+        invoice: row.invoice as string,
         amount: Number(row.amount),
         place: row.place as string,
         installment: row.installment as string,
@@ -68,21 +74,24 @@ export async function fetchTransactions(): Promise<Transaction[]> {
   return all;
 }
 
-/** Troca as compras dos cartões e meses presentes na lista pelas novas. */
+/** Troca as compras dos cartões e faturas presentes na lista pelas novas. */
 export async function saveTransactions(list: Transaction[]): Promise<void> {
   if (!supabase) {
     saveLocal(list);
     return;
   }
 
-  const rows = list.map(({ date, amount, place, installment, card, category }) => ({
-    date,
-    amount,
-    place,
-    installment,
-    card,
-    category,
-  }));
+  const rows = list.map(
+    ({ date, invoice, amount, place, installment, card, category }) => ({
+      date,
+      invoice,
+      amount,
+      place,
+      installment,
+      card,
+      category,
+    })
+  );
 
   const { error } = await supabase.rpc("replace_transactions", { rows });
   if (error) throw new Error(error.message);

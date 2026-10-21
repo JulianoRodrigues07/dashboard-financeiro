@@ -25,7 +25,7 @@ export type MonthRow = {
 export function totalsByMonth(list: Transaction[], cards: string[]): MonthRow[] {
   const map = new Map<string, number[]>();
   for (const t of list) {
-    const month = t.date.slice(0, 7);
+    const month = t.invoice;
     const row = map.get(month) ?? cards.map(() => 0);
     const idx = cards.indexOf(t.card);
     if (idx !== -1) row[idx] += t.amount;

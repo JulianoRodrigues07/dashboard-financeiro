@@ -12,21 +12,20 @@ type Props = {
   onCancel: () => void;
 };
 
-type Group = { card: string; month: string; count: number; total: number };
+type Group = { card: string; invoice: string; count: number; total: number };
 
 function groupResult(result: ParseResult, cardName: string): Group[] {
   const map = new Map<string, Group>();
   for (const t of result.transactions) {
-    const month = t.date.slice(0, 7);
     const card = result.cardMissing ? cardName.trim() || "(informe o cartão)" : t.card;
-    const key = `${card}|${month}`;
-    const g = map.get(key) ?? { card, month, count: 0, total: 0 };
+    const key = `${card}|${t.invoice}`;
+    const g = map.get(key) ?? { card, invoice: t.invoice, count: 0, total: 0 };
     g.count += 1;
     g.total += t.amount;
     map.set(key, g);
   }
   return [...map.values()].sort(
-    (a, b) => a.month.localeCompare(b.month) || a.card.localeCompare(b.card, "pt-BR")
+    (a, b) => a.invoice.localeCompare(b.invoice) || a.card.localeCompare(b.card, "pt-BR")
   );
 }
 
@@ -42,14 +41,14 @@ export default function ImportReview({
 }: Props) {
   const groups = groupResult(result, cardName);
   const blockSave = result.cardMissing && !cardName.trim();
-  const { skipped } = result;
+  const { skipped, notes } = result;
 
   return (
     <section className="mx-auto max-w-3xl px-5 py-12 sm:px-8">
       <h1 className="text-3xl font-bold tracking-tight">Conferir antes de salvar</h1>
       <p className="mt-2 text-muted">
         Li {result.transactions.length} compras do arquivo {fileName}. Ao salvar,
-        as compras de cada cartão nos meses abaixo são substituídas pelas deste
+        as compras de cada cartão nas faturas abaixo são substituídas pelas deste
         arquivo, então enviar a mesma fatura duas vezes não duplica nada.
       </p>
 
@@ -73,10 +72,10 @@ export default function ImportReview({
       )}
 
       <div className="mt-6 overflow-x-auto rounded-2xl border border-line bg-surface">
-        <table className="w-full min-w-md border-collapse text-left">
+        <table className="w-full min-w-[28rem] border-collapse text-left">
           <thead>
             <tr className="border-b border-line text-sm font-semibold text-muted">
-              <th scope="col" className="px-4 py-3">Mês</th>
+              <th scope="col" className="px-4 py-3">Fatura</th>
               <th scope="col" className="px-4 py-3">Cartão</th>
               <th scope="col" className="px-4 py-3 text-right">Compras</th>
               <th scope="col" className="px-4 py-3 text-right">Total</th>
@@ -84,8 +83,8 @@ export default function ImportReview({
           </thead>
           <tbody>
             {groups.map((g) => (
-              <tr key={`${g.card}|${g.month}`} className="border-b border-line last:border-b-0">
-                <td className="px-4 py-3">{formatMonth(g.month)}</td>
+              <tr key={`${g.card}|${g.invoice}`} className="border-b border-line last:border-b-0">
+                <td className="px-4 py-3">{formatMonth(g.invoice)}</td>
                 <td className="px-4 py-3">{g.card}</td>
                 <td className="px-4 py-3 text-right tabular-nums">{g.count}</td>
                 <td className="px-4 py-3 text-right font-semibold tabular-nums">
@@ -96,6 +95,14 @@ export default function ImportReview({
           </tbody>
         </table>
       </div>
+
+      {notes.length > 0 && (
+        <ul role="status" className="mt-4 space-y-2 rounded-xl bg-brand-soft px-4 py-3 text-brand">
+          {notes.map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+        </ul>
+      )}
 
       {skipped.length > 0 && (
         <p role="status" className="mt-4 rounded-xl bg-brand-soft px-4 py-3 text-brand">
