@@ -24,7 +24,7 @@ Abra http://localhost:3000. Sem as variáveis o site abre, mas só mostra os dad
 - Cada compra tem a data da compra e o mês da fatura em que foi cobrada (campo invoice). O painel agrupa por mês da fatura.
 - Ao importar, o sistema mostra um resumo por fatura e cartão para conferir. Ao salvar, as compras daquele cartão naquela fatura são substituídas pelas do arquivo. Enviar a mesma fatura duas vezes não duplica.
 - Planilhas e extratos (.xlsx, .csv): colunas data, valor, onde foi a compra, parcela, cartão, categoria. O mês da fatura é o mês da compra. Exemplo em public/modelo-gastos.csv.
-- Fatura em PDF do Porto Bank: o mês da fatura é o do vencimento, cada cartão da fatura vira um cartão ("Porto final 126") e o pagamento da fatura anterior é ignorado. A categoria é sugerida pelo nome da loja (regras em lib/pdf/categorize.ts). O leitor está em lib/pdf/porto.ts; para outro banco, crie um arquivo parecido.
+- Fatura em PDF do Porto Bank: o mês da fatura é o do vencimento, cada cartão da fatura vira um cartão ("Porto final 126") e o pagamento da fatura anterior é ignorado. A categoria é sugerida pelo nome da loja (regras em lib/pdf/categorize.ts). O leitor está em lib/pdf/porto.ts. PDFs de outros bancos passam por um leitor genérico (lib/pdf/generic.ts), que procura linhas de data, descrição e valor, mostra todas na conferência e compara a soma com o total da fatura. Para ficar exato em um banco específico, crie um leitor próprio parecido com o do Porto.
 - Se você já tinha rodado o schema.sql antes, rode também supabase/migracao-fatura.sql uma vez.
 
 ## Onde mexer
@@ -34,3 +34,9 @@ Abra http://localhost:3000. Sem as variáveis o site abre, mas só mostra os dad
 - lib/db.ts: leitura e gravação no banco.
 - lib/filters.ts: regras dos filtros.
 - components/: telas.
+
+## Categorias
+
+- Nomes de categoria são padronizados em lib/categories.ts: tudo que é comida (mercado, supermercado, restaurante, padaria...) vira "Alimentação". Para unir ou separar outras categorias, edite esse arquivo.
+- Na lista de compras, clique na categoria de uma compra para escolher outra ou criar uma nova. Dá para aplicar a todas as compras com o mesmo nome de loja.
+- A categoria escolhida à mão continua valendo quando a mesma loja aparece em faturas importadas depois.

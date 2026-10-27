@@ -1,3 +1,4 @@
+import { canonicalCategory } from "./categories";
 import { supabase } from "./supabase";
 import type { Transaction } from "./types";
 
@@ -14,6 +15,7 @@ function readLocal(): Transaction[] {
     return (JSON.parse(raw) as Transaction[]).map((t) => ({
       ...t,
       invoice: t.invoice ?? t.date.slice(0, 7),
+      category: canonicalCategory(t.category),
     }));
   } catch {
     return [];
@@ -66,7 +68,8 @@ export async function fetchTransactions(): Promise<Transaction[]> {
         place: row.place as string,
         installment: row.installment as string,
         card: row.card as string,
-        category: row.category as string,
+        // Padroniza nomes antigos (ex.: "Mercado" e "Restaurantes" viram "Alimentação")
+        category: canonicalCategory(row.category as string),
       });
     }
     if (data.length < PAGE_SIZE) break;
@@ -95,4 +98,24 @@ export async function saveTransactions(list: Transaction[]): Promise<void> {
 
   const { error } = await supabase.rpc("replace_transactions", { rows });
   if (error) throw new Error(error.message);
+}
+
+/** Muda a categoria de uma ou mais compras já salvas. */
+export async function updateCategory(ids: string[], category: string): Promise<void> {
+  if (ids.length === 0) return;
+
+  if (!supabase) {
+    const wanted = new Set(ids);
+    const next = readLocal().map((t) => (wanted.has(t.id) ? { ...t, category } : t));
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(next));
+    return;
+  }
+
+  for (let i = 0; i < ids.length; i += 100) {
+    const { error } = await supabase
+      .from("transactions")
+      .update({ category })
+      .in("id", ids.slice(i, i + 100));
+    if (error) throw new Error(error.message);
+  }
 }

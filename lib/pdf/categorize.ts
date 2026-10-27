@@ -5,12 +5,16 @@
  * A primeira regra que combinar vence, por isso as mais específicas vêm antes.
  */
 const RULES: { category: string; pattern: RegExp }[] = [
+  { category: "Juros e tarifas", pattern: /\bIOF\b|JUROS|MULTA|TARIFA|ANUIDADE|ENCARGO/ },
   { category: "Assinaturas", pattern: /SPOTIFY|NETFLIX|AMAZON PRIME|DISNEY|YOUTUBE|GOOGLE ONE|APPLE\.COM/ },
   { category: "Seguros", pattern: /ALLIANZ|YELUMSEG|SEGURO/ },
   { category: "Saúde", pattern: /FARMACIA|MEDICAMENT|DROGARIA|PANVEL|DROGASIL|CLINICA|LABORATORIO|CONSULTA/ },
-  { category: "Mercado", pattern: /SUPERMERC|MINIMERCADO|MERCADO|ZAFFARI/ },
+  {
+    category: "Alimentação",
+    pattern:
+      /SUPERMERC|MINIMERCADO|MERCADO(?!\s*LIVRE)|ZAFFARI|RESTAURANTE|PIZZARIA|CHURRASCARIA|PADARIA|LANCHONETE|IFOOD|SORVETE/,
+  },
   { category: "Transporte", pattern: /99APP|UBER|POSTO|COMBUSTIV|IPIRANGA/ },
-  { category: "Alimentação", pattern: /RESTAURANTE|PIZZARIA|CHURRASCARIA|PADARIA|LANCHONETE|IFOOD|SORVETE/ },
   { category: "Vestuário", pattern: /MODA|GRAZZIOTIN|POMPEIA/ },
 ];
 

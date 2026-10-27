@@ -17,6 +17,13 @@ function parseAmount(text: string): number {
   return Number(text.replace(/\./g, "").replace(",", "."));
 }
 
+export function looksLikePorto(lines: string[]): boolean {
+  return (
+    lines.some((l) => /Lançamentos:\s*compras e saques/i.test(l)) &&
+    lines.some((l) => /porto\s*bank|portoseguro|cartaoportoseguro/i.test(l))
+  );
+}
+
 function findDueDate(lines: string[]) {
   for (let i = 0; i < lines.length; i++) {
     if (/vence em/i.test(lines[i])) {
@@ -28,8 +35,12 @@ function findDueDate(lines: string[]) {
 }
 
 /** "HAVAN ... 09/10 ..." e "ALLIANZ ... 03 de 10 ..." indicam parcela 9/10 e 3/10. */
-function splitInstallment(description: string): { installment: string; rest: string } {
-  const patterns = [/\s(\d{1,2})\s+de\s+(\d{1,2})(?=\s|$)/i, /\s(\d{2})\/(\d{2})(?=\s|$)/];
+export function splitInstallment(description: string): { installment: string; rest: string } {
+  const patterns = [
+    /\s(\d{1,2})\s+de\s+(\d{1,2})(?=\s|$)/i,
+    /\s(?:parcela\s+)?(\d{1,2})\/(\d{1,2})(?=\s|$)/i,
+    /\sParc\.?\s*(\d{1,2})\/(\d{1,2})(?=\s|$)/i,
+  ];
   for (const pattern of patterns) {
     const m = description.match(pattern);
     if (m) {
@@ -46,7 +57,7 @@ function splitInstallment(description: string): { installment: string; rest: str
   return { installment: "À vista", rest: description };
 }
 
-function cleanPlace(text: string): string {
+export function cleanPlace(text: string): string {
   return text.replace(/\s+/g, " ").trim().replace(/\sBRA$/, "");
 }
 

@@ -26,4 +26,6 @@ export type ParseResult = {
   suggestedCard: string;
   /** Avisos para mostrar na conferência antes de salvar */
   notes: string[];
+  /** Mostrar a lista completa de compras na conferência (leituras menos certas) */
+  showRows?: boolean;
 };

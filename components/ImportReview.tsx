@@ -1,4 +1,4 @@
-import { formatMonth, formatMoney } from "@/lib/format";
+import { formatDate, formatMonth, formatMoney } from "@/lib/format";
 import type { ParseResult } from "@/lib/types";
 
 type Props = {
@@ -96,12 +96,44 @@ export default function ImportReview({
         </table>
       </div>
 
+      <p className="mt-3 text-sm text-muted">
+        Soma das compras lidas:{" "}
+        <strong className="tabular-nums text-ink">
+          {formatMoney(result.transactions.reduce((acc, t) => acc + t.amount, 0))}
+        </strong>
+      </p>
+
       {notes.length > 0 && (
         <ul role="status" className="mt-4 space-y-2 rounded-xl bg-brand-soft px-4 py-3 text-brand">
           {notes.map((n) => (
             <li key={n}>{n}</li>
           ))}
         </ul>
+      )}
+
+      {result.showRows && (
+        <div className="mt-4 max-h-96 overflow-auto rounded-2xl border border-line bg-surface">
+          <table className="w-full min-w-[32rem] border-collapse text-left text-[0.95rem]">
+            <thead className="sticky top-0 bg-surface">
+              <tr className="border-b border-line text-sm font-semibold text-muted">
+                <th scope="col" className="px-4 py-2">Data</th>
+                <th scope="col" className="px-4 py-2">Onde foi a compra</th>
+                <th scope="col" className="px-4 py-2">Parcela</th>
+                <th scope="col" className="px-4 py-2 text-right">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.transactions.map((t) => (
+                <tr key={t.id} className="border-b border-line last:border-b-0">
+                  <td className="px-4 py-2 tabular-nums text-muted">{formatDate(t.date)}</td>
+                  <td className="px-4 py-2">{t.place}</td>
+                  <td className="px-4 py-2 text-muted">{t.installment}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{formatMoney(t.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {skipped.length > 0 && (

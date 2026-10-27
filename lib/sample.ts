@@ -1,3 +1,4 @@
+import { canonicalCategory } from "./categories";
 import type { Transaction } from "./types";
 
 type Seed = [string, number, string, string, string, string];
@@ -39,6 +40,6 @@ export const sampleTransactions: Transaction[] = SEEDS.map(
     place,
     installment,
     card,
-    category,
+    category: canonicalCategory(category),
   })
 );

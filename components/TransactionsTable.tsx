@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import CategoryEditor from "./CategoryEditor";
+import { NO_CATEGORY } from "@/lib/categories";
 import { formatDate, formatMoney } from "@/lib/format";
 import type { Transaction } from "@/lib/types";
 
@@ -19,12 +21,23 @@ const PAGE = 40;
 type Props = {
   transactions: Transaction[];
   cardColors: Record<string, string>;
+  /** Sem esta função, as categorias aparecem mas não podem ser editadas (ex.: dados de exemplo) */
+  onChangeCategory?: (t: Transaction, category: string, applyToSame: boolean) => Promise<void>;
+  categoryOptions?: string[];
+  countSame?: (t: Transaction) => number;
 };
 
-export default function TransactionsTable({ transactions, cardColors }: Props) {
+export default function TransactionsTable({
+  transactions,
+  cardColors,
+  onChangeCategory,
+  categoryOptions = [],
+  countSame = () => 1,
+}: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
   const [visible, setVisible] = useState(PAGE);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const sorted = useMemo(() => {
     const factor = dir === "asc" ? 1 : -1;
@@ -85,33 +98,76 @@ export default function TransactionsTable({ transactions, cardColors }: Props) {
             </tr>
           </thead>
           <tbody>
-            {sorted.slice(0, visible).map((t) => (
-              <tr key={t.id} className="border-b border-line last:border-b-0 hover:bg-paper">
-                <td className="px-4 py-3 tabular-nums text-muted">{formatDate(t.date)}</td>
-                <td className="px-4 py-3">
-                  <span className="font-medium">{t.place}</span>
-                  {t.installment !== "À vista" && t.installment !== "1/1" && (
-                    <span className="ml-2 rounded-md bg-brand-soft px-2 py-0.5 text-sm text-brand">
-                      parcela {t.installment}
-                    </span>
+            {sorted.slice(0, visible).map((t) => {
+              const editing = editingId === t.id;
+              const uncategorized = t.category === NO_CATEGORY;
+              return (
+                <Fragment key={t.id}>
+                  <tr
+                    className={`border-b border-line hover:bg-paper ${
+                      editing ? "bg-paper" : "last:border-b-0"
+                    }`}
+                  >
+                    <td className="px-4 py-3 tabular-nums text-muted">{formatDate(t.date)}</td>
+                    <td className="px-4 py-3">
+                      <span className="font-medium">{t.place}</span>
+                      {t.installment !== "À vista" && t.installment !== "1/1" && (
+                        <span className="ml-2 rounded-md bg-brand-soft px-2 py-0.5 text-sm text-brand">
+                          parcela {t.installment}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {onChangeCategory ? (
+                        <button
+                          type="button"
+                          aria-expanded={editing}
+                          aria-label={`Mudar a categoria de ${t.place}, atual: ${t.category}`}
+                          onClick={() => setEditingId(editing ? null : t.id)}
+                          className={`-mx-2 min-h-9 rounded-lg px-2 text-left underline decoration-dotted underline-offset-4 hover:bg-brand-soft ${
+                            uncategorized ? "font-semibold text-brand" : "text-muted"
+                          }`}
+                        >
+                          {uncategorized ? "Escolher categoria" : t.category}
+                        </button>
+                      ) : (
+                        <span className="text-muted">{t.category}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center gap-2">
+                        <span
+                          aria-hidden
+                          className="size-3 rounded-full"
+                          style={{ background: cardColors[t.card] }}
+                        />
+                        {t.card}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                      {formatMoney(t.amount)}
+                    </td>
+                  </tr>
+                  {editing && onChangeCategory && (
+                    <tr className="border-b border-line bg-paper last:border-b-0">
+                      <td colSpan={COLUMNS.length} className="px-4 pb-5 pt-1">
+                        <CategoryEditor
+                          place={t.place}
+                          current={t.category}
+                          options={categoryOptions}
+                          sameCount={countSame(t)}
+                          onSave={async (category, applyToSame) => {
+                            await onChangeCategory(t, category, applyToSame);
+                            setEditingId(null);
+                          }}
+                          onCancel={() => setEditingId(null)}
+                        />
+                      </td>
+                    </tr>
                   )}
-                </td>
-                <td className="px-4 py-3 text-muted">{t.category}</td>
-                <td className="px-4 py-3">
-                  <span className="inline-flex items-center gap-2">
-                    <span
-                      aria-hidden
-                      className="size-3 rounded-full"
-                      style={{ background: cardColors[t.card] }}
-                    />
-                    {t.card}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right font-semibold tabular-nums">
-                  {formatMoney(t.amount)}
-                </td>
-              </tr>
-            ))}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>

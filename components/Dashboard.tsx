@@ -12,7 +12,13 @@ import NewPasswordForm from "./NewPasswordForm";
 import TransactionsTable from "./TransactionsTable";
 import UploadPanel from "./UploadPanel";
 import { buildCardColors } from "@/lib/colors";
-import { clearLocalTransactions, fetchTransactions, saveTransactions } from "@/lib/db";
+import { DEFAULT_CATEGORIES, NO_CATEGORY, learnCategories, normalizePlace } from "@/lib/categories";
+import {
+  clearLocalTransactions,
+  fetchTransactions,
+  saveTransactions,
+  updateCategory,
+} from "@/lib/db";
 import { applyFilters, emptyFilters, type Filters } from "@/lib/filters";
 import { formatMonth, formatMoney } from "@/lib/format";
 import { parseFile } from "@/lib/parse";
@@ -99,6 +105,21 @@ export default function Dashboard() {
     () => [...new Set(all.map((t) => t.invoice))].sort(),
     [all]
   );
+  const categoryOptions = useMemo(
+    () =>
+      [...new Set([...DEFAULT_CATEGORIES, ...categories])]
+        .filter((c) => c !== NO_CATEGORY)
+        .sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [categories]
+  );
+  const placeCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of all) {
+      const key = normalizePlace(t.place);
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return map;
+  }, [all]);
   const cardColors = useMemo(() => buildCardColors(cards), [cards]);
   const filtered = useMemo(() => applyFilters(all, filters), [all, filters]);
   const total = sumAmount(filtered);
@@ -129,7 +150,11 @@ export default function Dashboard() {
       const list = pending.cardMissing
         ? pending.transactions.map((t) => ({ ...t, card: cardName.trim() }))
         : pending.transactions;
-      await saveTransactions(list);
+      // Categorias escolhidas à mão antes continuam valendo para as mesmas lojas
+      const learned = learnCategories(remote ?? []);
+      await saveTransactions(
+        list.map((t) => ({ ...t, category: learned.get(normalizePlace(t.place)) ?? t.category }))
+      );
       setRemote(await fetchTransactions());
       setPending(null);
       setFilters(emptyFilters);
@@ -138,6 +163,16 @@ export default function Dashboard() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function changeCategory(t: Transaction, category: string, applyToSame: boolean) {
+    const key = normalizePlace(t.place);
+    const ids = applyToSame
+      ? all.filter((x) => normalizePlace(x.place) === key).map((x) => x.id)
+      : [t.id];
+    await updateCategory(ids, category);
+    const changed = new Set(ids);
+    setRemote((prev) => (prev ?? []).map((x) => (changed.has(x.id) ? { ...x, category } : x)));
   }
 
   function cancelImport() {
@@ -357,8 +392,19 @@ export default function Dashboard() {
       )}
 
       <section>
-        <h2 className="mb-4 text-xl font-bold">Compras</h2>
-        <TransactionsTable transactions={filtered} cardColors={cardColors} />
+        <h2 className="text-xl font-bold">Compras</h2>
+        {!demo && (
+          <p className="mb-4 mt-1 text-muted">
+            Clique na categoria de uma compra para escolher outra.
+          </p>
+        )}
+        <TransactionsTable
+          transactions={filtered}
+          cardColors={cardColors}
+          onChangeCategory={demo ? undefined : changeCategory}
+          categoryOptions={categoryOptions}
+          countSame={(t) => placeCounts.get(normalizePlace(t.place)) ?? 1}
+        />
       </section>
     </main>
   );

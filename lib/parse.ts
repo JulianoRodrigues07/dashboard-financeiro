@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import { readSheet } from "read-excel-file/web-worker";
+import { canonicalCategory } from "./categories";
 import type { ParseResult, Transaction } from "./types";
 
 type Cell = unknown;
@@ -179,10 +180,12 @@ function cleanPlace(value: Cell): string {
 /** Textos todo em maiúsculas ("SUPERMERCADO") viram "Supermercado". */
 function cleanCategory(value: Cell): string {
   const raw = String(value ?? "").trim();
-  if (raw && raw === raw.toUpperCase() && raw !== raw.toLowerCase()) {
-    return raw.charAt(0) + raw.slice(1).toLowerCase();
-  }
-  return raw;
+  if (!raw) return "";
+  const sentence =
+    raw === raw.toUpperCase() && raw !== raw.toLowerCase()
+      ? raw.charAt(0) + raw.slice(1).toLowerCase()
+      : raw;
+  return canonicalCategory(sentence);
 }
 
 function text(value: Cell, fallback: string): string {
@@ -290,8 +293,10 @@ export async function parseFile(file: File): Promise<ParseResult> {
 
   if (name.endsWith(".pdf")) {
     const { readPdfLines } = await import("./pdf/extract");
-    const { parsePortoLines } = await import("./pdf/porto");
-    return parsePortoLines(await readPdfLines(file));
+    const { looksLikePorto, parsePortoLines } = await import("./pdf/porto");
+    const { parseGenericLines } = await import("./pdf/generic");
+    const lines = await readPdfLines(file);
+    return looksLikePorto(lines) ? parsePortoLines(lines) : parseGenericLines(lines);
   }
 
   if (name.endsWith(".xlsx")) {
